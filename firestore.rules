@@ -1,0 +1,121 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Default deny
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // Helper functions
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    // Users
+    match /users/{userId} {
+      function isValidUser(data) {
+        return data.username is string && data.username.size() >= 3 && data.username.size() <= 30
+               && (data.displayName == null || (data.displayName is string && data.displayName.size() <= 50))
+               && (data.photoURL == null || (data.photoURL is string && data.photoURL.size() <= 500))
+               && (data.isFaceIdEnabled == null || data.isFaceIdEnabled is bool);
+      }
+
+      allow get: if isSignedIn();
+      allow list: if isSignedIn() && resource.data.username != null;
+      allow create: if isOwner(userId) && isValidUser(incoming());
+      allow update: if isOwner(userId) && isValidUser(incoming())
+                    && incoming().diff(existing()).affectedKeys().hasOnly(['displayName', 'photoURL', 'bio', 'bodyType', 'location', 'isFaceIdEnabled', 'followersCount', 'followingCount', 'friends', 'blockedUsers', 'coins', 'notificationSettings', 'interests']);
+    }
+
+    // Notifications
+    match /notifications/{notificationId} {
+      allow read: if isSignedIn() && request.auth.uid == resource.data.recipientId;
+      allow update: if isSignedIn() && request.auth.uid == resource.data.recipientId && incoming().diff(existing()).affectedKeys().hasOnly(['read']);
+    }
+
+    // Transactions
+    match /transactions/{transactionId} {
+      allow read: if isSignedIn() && request.auth.uid == resource.data.userId;
+    }
+
+    // Posts
+    match /posts/{postId} {
+      function isValidPost(data) {
+        return data.creatorId is string && data.creatorId == request.auth.uid
+               && data.videoUrl is string && data.videoUrl.size() <= 1000
+               && (data.caption == null || (data.caption is string && data.caption.size() <= 1000))
+               && data.likesCount is number && data.commentsCount is number;
+      }
+
+      allow read: if isSignedIn();
+      allow create: if isSignedIn() && isValidPost(incoming());
+      allow update: if isSignedIn() && (
+        // Creator can update caption
+        (isOwner(existing().creatorId) && incoming().diff(existing()).affectedKeys().hasOnly(['caption']))
+        ||
+        // System updates like/comment counts (simplified for demo, usually via function)
+        (incoming().diff(existing()).affectedKeys().hasAny(['likesCount', 'commentsCount']))
+      );
+      allow delete: if isSignedIn() && isOwner(existing().creatorId);
+    }
+
+    // Comments
+    match /posts/{postId}/comments/{commentId} {
+      function isValidComment(data) {
+        return data.userId == request.auth.uid && data.text is string && data.text.size() <= 500;
+      }
+      allow read: if isSignedIn();
+      allow create: if isSignedIn() && isValidComment(incoming());
+      allow delete: if isSignedIn() && isOwner(existing().userId);
+    }
+
+    // Likes
+    match /posts/{postId}/likes/{userId} {
+      allow read: if isSignedIn();
+      allow write: if isOwner(userId);
+    }
+
+    // Chats
+    match /chats/{chatId} {
+      allow read: if isSignedIn() && request.auth.uid in chatId.split('_');
+      allow create: if isSignedIn(); // Add validation for participant IDs if needed
+    }
+
+    match /chats/{chatId}/messages/{messageId} {
+      function isValidMessage(data) {
+        return data.senderId == request.auth.uid && data.text is string && data.text.size() <= 1000;
+      }
+      allow read: if isSignedIn() && request.auth.uid in chatId.split('_');
+      allow create: if isSignedIn() && request.auth.uid in chatId.split('_') && isValidMessage(incoming());
+    }
+
+    // Matches
+    match /matches/{matchId} {
+      allow read: if isSignedIn() && request.auth.uid in resource.data.users;
+      allow create: if isSignedIn();
+    }
+
+    // Friend Requests
+    match /friendRequests/{requestId} {
+      allow read: if isSignedIn() && (request.auth.uid == resource.data.from || request.auth.uid == resource.data.to);
+      allow create: if isSignedIn() && incoming().from == request.auth.uid;
+      allow update: if isSignedIn() && request.auth.uid == existing().to && incoming().diff(existing()).affectedKeys().hasOnly(['status']);
+    }
+  }
+}

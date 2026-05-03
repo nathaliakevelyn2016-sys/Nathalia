@@ -1,0 +1,160 @@
+{
+  "entities": {
+    "User": {
+      "title": "User",
+      "description": "User profile information and settings",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string" },
+        "displayName": { "type": "string" },
+        "username": { "type": "string" },
+        "photoURL": { "type": "string" },
+        "bio": { "type": "string" },
+        "bodyType": { "type": "string" },
+        "location": { "type": "string" },
+        "followersCount": { "type": "number" },
+        "followingCount": { "type": "number" },
+        "friends": { "type": "array", "items": { "type": "string" } },
+        "blockedUsers": { "type": "array", "items": { "type": "string" } },
+        "isFaceIdEnabled": { "type": "boolean" },
+        "coins": { "type": "number", "default": 0 },
+        "interests": { "type": "array", "items": { "type": "string" } },
+        "notificationSettings": {
+          "type": "object",
+          "properties": {
+            "likes": { "type": "boolean" },
+            "comments": { "type": "boolean" },
+            "followers": { "type": "boolean" },
+            "messages": { "type": "boolean" },
+            "live": { "type": "boolean" }
+          }
+        },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["uid", "username"]
+    },
+    "Notification": {
+      "title": "Notification",
+      "description": "System and social notifications",
+      "type": "object",
+      "properties": {
+        "recipientId": { "type": "string" },
+        "senderId": { "type": "string" },
+        "type": { "type": "string" },
+        "message": { "type": "string" },
+        "read": { "type": "boolean" },
+        "createdAt": { "type": "string" }
+      }
+    },
+    "RewardTransaction": {
+      "title": "RewardTransaction",
+      "description": "History of coin earnings and spendings",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "amount": { "type": "number" },
+        "reason": { "type": "string" },
+        "createdAt": { "type": "string" }
+      }
+    },
+    "Post": {
+      "title": "Post",
+      "description": "A video or image post in the feed",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "creatorId": { "type": "string" },
+        "videoUrl": { "type": "string" },
+        "thumbnailUrl": { "type": "string" },
+        "caption": { "type": "string" },
+        "likesCount": { "type": "number" },
+        "commentsCount": { "type": "number" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["creatorId", "videoUrl"]
+    },
+    "Comment": {
+      "title": "Comment",
+      "description": "A comment on a post",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "postId": { "type": "string" },
+        "text": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["userId", "postId", "text"]
+    },
+    "Message": {
+      "title": "Message",
+      "description": "Private message between users",
+      "type": "object",
+      "properties": {
+        "senderId": { "type": "string" },
+        "receiverId": { "type": "string" },
+        "text": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "type": { "type": "string", "enum": ["text", "gift", "video_call"] }
+      },
+      "required": ["senderId", "receiverId", "text"]
+    },
+    "Match": {
+      "title": "Match",
+      "description": "Swipe match state",
+      "type": "object",
+      "properties": {
+        "users": { "type": "array", "items": { "type": "string" } },
+        "createdAt": { "type": "string", "format": "date-time" }
+      }
+    },
+    "FriendRequest": {
+      "title": "FriendRequest",
+      "description": "Friend request between users",
+      "type": "object",
+      "properties": {
+        "from": { "type": "string" },
+        "to": { "type": "string" },
+        "status": { "type": "string", "enum": ["pending", "accepted", "declined"] },
+        "createdAt": { "type": "string", "format": "date-time" }
+      }
+    }
+  },
+  "firestore": {
+    "users/{userId}": {
+      "schema": "User",
+      "description": "User profiles"
+    },
+    "posts/{postId}": {
+      "schema": "Post",
+      "description": "Feed posts"
+    },
+    "posts/{postId}/comments/{commentId}": {
+      "schema": "Comment",
+      "description": "Post comments"
+    },
+    "posts/{postId}/likes/{userId}": {
+      "schema": { "type": "object", "properties": { "createdAt": { "type": "string" } } },
+      "description": "Post likes"
+    },
+    "chats/{chatId}/messages/{messageId}": {
+      "schema": "Message",
+      "description": "Direct messages"
+    },
+    "matches/{matchId}": {
+      "schema": "Match",
+      "description": "Matched pair info"
+    },
+    "friendRequests/{requestId}": {
+      "schema": "FriendRequest",
+      "description": "Pending friend requests"
+    },
+    "notifications/{notificationId}": {
+      "schema": "Notification",
+      "description": "User notifications"
+    },
+    "transactions/{transactionId}": {
+      "schema": "RewardTransaction",
+      "description": "Coin transaction history"
+    }
+  }
+}

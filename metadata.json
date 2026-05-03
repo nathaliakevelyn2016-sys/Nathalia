@@ -1,0 +1,9 @@
+{
+  "name": "TokMatch - 18+",
+  "description": "Uma rede social premium e provocante para adultos. Conecte-se, assista conteúdos exclusivos, faça matches ousados e envie presentes em tempo real em um ambiente seguro e privativo.",
+  "requestFramePermissions": [
+    "camera",
+    "microphone"
+  ],
+  "majorCapabilities": []
+}
